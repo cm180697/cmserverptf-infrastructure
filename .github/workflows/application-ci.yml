@@ -1,0 +1,27 @@
+name: Application CI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'functions/**'
+      - 'Makefile'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - '.github/workflows/application-ci.yml'
+
+jobs:
+  test-and-lint:
+    name: Test and Lint Python Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python & Poetry
+        uses: snok/install-poetry@v1
+      - name: Install dependencies
+        run: make install
+      - name: Run linting checks
+        run: make lint
+      - name: Run unit tests
+        run: make test
