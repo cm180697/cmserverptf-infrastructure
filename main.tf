@@ -195,3 +195,9 @@ resource "aws_route53_record" "www" {
     evaluate_target_health = false
   }
 }
+
+
+output "cloudfront_distribution_id" {
+  description = "The ID of the CloudFront distribution."
+  value       = aws_cloudfront_distribution.s3_distribution.id
+}
