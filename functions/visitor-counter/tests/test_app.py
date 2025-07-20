@@ -1,12 +1,16 @@
+import os
+import sys
+
+# We need to add the parent directory to the path to find the app module.
+# This allows us to import the 'app' module from the parent directory.
+# We construct the path and insert it at the beginning of the system path.
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, parent_dir)
+
+import boto3
 import pytest
 from moto import mock_aws
-import boto3
-import os
 
-# Import the function we want to test
-# We need to add the parent directory to the path to find the app module
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app import lambda_handler
 
 
@@ -18,6 +22,7 @@ def aws_credentials():
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = "us-east-2"
+
 
 @pytest.fixture
 def dynamodb_table(aws_credentials):
@@ -33,10 +38,10 @@ def dynamodb_table(aws_credentials):
         )
         yield table_name
 
+
 def test_lambda_handler_increments_count(dynamodb_table):
     """
-    Test that the lambda_handler successfully increments the visitor count
-    and returns the new count.
+    Test that the lambda_handler successfully increments the visitor count.
     """
     # Set environment variables for the handler
     os.environ["TABLE_NAME"] = dynamodb_table
