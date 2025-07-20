@@ -1,11 +1,11 @@
 # .pre-commit-config.yaml
 repos:
 -   repo: https://github.com/psf/black
-    rev: 24.4.2 # Use a specific, recent version
+    rev: 24.4.2
     hooks:
     -   id: black
-        language_version: python3.10
+        # The 'language_version' line has been removed to use the default environment Python.
 -   repo: https://github.com/pycqa/flake8
-    rev: 7.1.0 # Use a specific, recent version
+    rev: 7.1.0
     hooks:
     -   id: flake8
