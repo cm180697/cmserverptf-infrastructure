@@ -11,3 +11,9 @@ variable "domain_name" {
   type        = string
   default     = "cmserverptf.click"
 }
+
+variable "website_url" {
+  description = "The full HTTPS URL of the portfolio website."
+  type        = string
+  default     = "https://www.cmserverptf.click"
+}

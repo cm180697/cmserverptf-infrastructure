@@ -201,3 +201,164 @@ output "cloudfront_distribution_id" {
   description = "The ID of the CloudFront distribution."
   value       = aws_cloudfront_distribution.s3_distribution.id
 }
+
+# ==============================================================================
+# DYNAMODB TABLE FOR VISITOR COUNTER
+# This table will store our website's visitor count.
+# ==============================================================================
+
+resource "aws_dynamodb_table" "visitor_counter_table" {
+  name         = "visitor-counter-table"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S" # S for String
+  }
+
+  # Initialize the table with our counter item
+  provisioner "local-exec" {
+    command = "aws dynamodb put-item --table-name ${self.name} --item '{\"id\": {\"S\": \"visitor_count\"}, \"visitor_count\": {\"N\": \"0\"}}' --region ${var.aws_region}"
+  }
+}
+
+# ==============================================================================
+# IAM ROLE FOR LAMBDA FUNCTION
+# This role grants our Lambda function permission to write to DynamoDB.
+# ==============================================================================
+
+resource "aws_iam_role" "lambda_exec_role" {
+  name = "lambda-visitor-counter-role"
+
+  # This is the trust policy that allows the Lambda service to assume this role.
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# This policy attaches the specific permissions to the role.
+resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
+  name = "lambda-dynamodb-policy"
+  role = aws_iam_role.lambda_exec_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem"
+        ]
+        Effect   = "Allow"
+        Resource = aws_dynamodb_table.visitor_counter_table.arn
+      },
+      # It's also a best practice to allow logging
+      {
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+
+# ==============================================================================
+# LAMBDA FUNCTION
+# This section packages and deploys our Python code.
+# ==============================================================================
+
+# This data source creates a zip file from our Python code directory.
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/functions/visitor-counter"
+  output_path = "${path.module}/functions/visitor-counter.zip"
+}
+
+# This is the Lambda function resource itself.
+resource "aws_lambda_function" "visitor_counter_lambda" {
+  function_name    = "visitor-counter"
+  handler          = "app.lambda_handler" # File name is 'app', function name is 'lambda_handler'
+  runtime          = "python3.10"
+  role             = aws_iam_role.lambda_exec_role.arn
+  
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+
+  # Pass environment variables to the function
+  environment {
+    variables = {
+      TABLE_NAME  = aws_dynamodb_table.visitor_counter_table.name
+      PRIMARY_KEY = "visitor_count"
+    }
+  }
+}
+
+# ==============================================================================
+# API GATEWAY
+# This creates the public HTTP endpoint that triggers our Lambda.
+# ==============================================================================
+
+# Creates the API Gateway itself
+resource "aws_apigatewayv2_api" "lambda_api" {
+  name          = "VisitorCounterAPI"
+  protocol_type = "HTTP"
+  cors_configuration {
+    allow_origins = [var.website_url] # <-- THIS IS THE CHANGE
+    allow_methods = ["GET", "OPTIONS"] # More specific methods
+    allow_headers = ["Content-Type"]   # More specific headers
+  }
+}
+
+# Integrates the API Gateway with our Lambda function
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  api_id           = aws_apigatewayv2_api.lambda_api.id
+  integration_type = "AWS_PROXY"
+  integration_uri  = aws_lambda_function.visitor_counter_lambda.invoke_arn
+}
+
+# Defines the route (e.g., GET /) for the API
+resource "aws_apigatewayv2_route" "api_route" {
+  api_id    = aws_apigatewayv2_api.lambda_api.id
+  route_key = "GET /"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+# Deploys the API to a "live" stage
+resource "aws_apigatewayv2_stage" "api_stage" {
+  api_id      = aws_apigatewayv2_api.lambda_api.id
+  name        = "$default"
+  auto_deploy = true
+}
+
+# Grants API Gateway permission to invoke the Lambda function
+resource "aws_lambda_permission" "api_gateway_permission" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.visitor_counter_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.lambda_api.execution_arn}/*/*"
+}
+
+# ==============================================================================
+# OUTPUTS
+# This will display the API endpoint URL after we apply the changes.
+# ==============================================================================
+
+output "api_endpoint_url" {
+  description = "The invoke URL for the visitor counter API."
+  value       = aws_apigatewayv2_api.lambda_api.api_endpoint
+}
