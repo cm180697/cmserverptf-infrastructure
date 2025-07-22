@@ -5,11 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Portfolio</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; }
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center;
+            height: 100vh; 
+            background-color: #f0f2f5; 
+            margin: 0; 
+        }
+        .container {
+            padding: 40px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
         h1 { color: #333; }
+        p { font-size: 1.2em; color: #555; }
+        #visitor-count { font-weight: bold; color: #007bff; }
     </style>
 </head>
 <body>
-    <h1>My AWS Portfolio - Under Construction</h1>
+    <div class="container">
+        <h1>My AWS Portfolio</h1>
+        <p>This site is deployed via a full GitOps CI/CD pipeline.</p>
+        <p>You are visitor number: <span id="visitor-count">Loading...</span></p>
+    </div>
+
+    <script>
+        // This script will run when the page loads
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const apiUrl = 'https://4s1amen1l2.execute-api.us-east-2.amazonaws.com/';
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Update the HTML element with the visitor count
+                    document.getElementById('visitor-count').textContent = data.count;
+                })
+                .catch(error => {
+                    console.error('Error fetching visitor count:', error);
+                    document.getElementById('visitor-count').textContent = 'Error';
+                });
+        });
+    </script>
 </body>
 </html>
