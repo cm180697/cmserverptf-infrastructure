@@ -383,6 +383,23 @@ test = ["certifi (>=2024)", "cryptography-vectors (==45.0.5)", "pretend (>=0.7)"
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
+name = "diagrams"
+version = "0.24.4"
+description = "Diagram as Code"
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["dev"]
+files = [
+    {file = "diagrams-0.24.4-py3-none-any.whl", hash = "sha256:41c5c03e1317ada0a64287f704e5e9d9c8794addce96b66dd831a536aa7e6507"},
+    {file = "diagrams-0.24.4.tar.gz", hash = "sha256:367b3056bc8875b5a32dcf66c7aad961cb83527b8f345dced82f17ee82781f72"},
+]
+
+[package.dependencies]
+graphviz = ">=0.13.2,<0.21.0"
+jinja2 = ">=2.10,<4.0"
+pre-commit = ">=4.0.1,<5.0.0"
+
+[[package]]
 name = "distlib"
 version = "0.4.0"
 description = "Distribution utilities"
@@ -446,6 +463,23 @@ files = [
 mccabe = ">=0.7.0,<0.8.0"
 pycodestyle = ">=2.14.0,<2.15.0"
 pyflakes = ">=3.4.0,<3.5.0"
+
+[[package]]
+name = "graphviz"
+version = "0.20.3"
+description = "Simple Python interface for Graphviz"
+optional = false
+python-versions = ">=3.8"
+groups = ["dev"]
+files = [
+    {file = "graphviz-0.20.3-py3-none-any.whl", hash = "sha256:81f848f2904515d8cd359cc611faba817598d2feaac4027b266aa3eda7b3dde5"},
+    {file = "graphviz-0.20.3.zip", hash = "sha256:09d6bc81e6a9fa392e7ba52135a9d49f1ed62526f96499325930e87ca1b5925d"},
+]
+
+[package.extras]
+dev = ["flake8", "pep8-naming", "tox (>=3)", "twine", "wheel"]
+docs = ["sphinx (>=5,<7)", "sphinx-autodoc-typehints", "sphinx-rtd-theme"]
+test = ["coverage", "pytest (>=7,<8.1)", "pytest-cov", "pytest-mock (>=3)"]
 
 [[package]]
 name = "identify"
@@ -1101,5 +1135,5 @@ files = [
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.10"
-content-hash = "7d0f67d1441941247227f310babb6f0a458b87d910d316f3509dbc2e50ff6abb"
+python-versions = "^3.10"
+content-hash = "ae92d55caea2cff8b638dee14c6e2e8dc0eb670421a9dd80cae80c711a8ffd35"
