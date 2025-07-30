@@ -1,6 +1,7 @@
 # docs/architecture.py
 
 from diagrams import Diagram, Cluster
+
 # Corrected imports for APIGateway, Route53, and CloudFront
 from diagrams.aws.network import APIGateway, Route53, CloudFront
 from diagrams.aws.storage import S3
@@ -8,7 +9,9 @@ from diagrams.aws.compute import Lambda
 from diagrams.aws.database import Dynamodb
 from diagrams.onprem.client import User
 
-with Diagram("AWS Portfolio Architecture", show=False, filename="architecture", outformat="png"):
+with Diagram(
+    "AWS Portfolio Architecture", show=False, filename="architecture", outformat="png"
+):
     user = User("User")
 
     with Cluster("AWS Cloud"):
