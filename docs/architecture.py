@@ -1,16 +1,18 @@
 # docs/architecture.py
 
 from diagrams import Diagram, Cluster
-
-# Corrected imports for APIGateway, Route53, and CloudFront
 from diagrams.aws.network import APIGateway, Route53, CloudFront
 from diagrams.aws.storage import S3
 from diagrams.aws.compute import Lambda
 from diagrams.aws.database import Dynamodb
 from diagrams.onprem.client import User
 
+# The filename now includes the 'docs/' path to save it in the correct directory.
 with Diagram(
-    "AWS Portfolio Architecture", show=False, filename="architecture", outformat="png"
+    "AWS Portfolio Architecture",
+    show=False,
+    filename="docs/architecture",
+    outformat="png",
 ):
     user = User("User")
 
