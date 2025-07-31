@@ -27,37 +27,36 @@ jobs:
       - name: Run unit tests
         run: make test
 
-  # --- NEW JOB ADDED HERE ---
+# --- Architecture Diagram JOB ---
   generate-diagram:
     name: Generate Architecture Diagram
     needs: test-and-lint # Run after tests pass
     runs-on: ubuntu-latest
 
     steps:
+      # This step now explicitly checks out the PR branch
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Set up Python & Poetry
         uses: snok/install-poetry@v1
 
-      # Step 1: Install system dependency (Graphviz)
       - name: Install Graphviz
         run: sudo apt-get update && sudo apt-get install -y graphviz
 
-      # Step 2: Install Python dependencies
       - name: Install Python Dependencies
         run: make install
 
-      # Step 3: Generate the diagram image
       - name: Generate Diagram
         run: poetry run python docs/architecture.py
 
-      # Step 4: Check for changes and commit them back to the PR branch
+      # This step now pushes back to the correct branch
       - name: Commit diagram changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add docs/architecture.png
-          # The following command exits with 0 if there are no changes, and 1 if there are.
-          # We use || exit 0 to prevent the step from failing if there's nothing to commit.
+          # Use || true to prevent the step from failing if there's nothing to commit.
           git diff --staged --quiet || (git commit -m "docs(bot): auto-generate architecture diagram" && git push)
