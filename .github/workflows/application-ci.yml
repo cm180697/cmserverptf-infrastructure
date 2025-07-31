@@ -9,7 +9,11 @@ on:
       - 'pyproject.toml'
       - 'poetry.lock'
       - '.github/workflows/application-ci.yml'
-      - 'docs/architecture.py' # Trigger on diagram code changes
+      - 'docs/architecture.py'
+
+# Grant the workflow permission to write back to the repository
+permissions:
+  contents: write
 
 jobs:
   test-and-lint:
@@ -27,14 +31,11 @@ jobs:
       - name: Run unit tests
         run: make test
 
-# --- Architecture Diagram JOB ---
   generate-diagram:
     name: Generate Architecture Diagram
-    needs: test-and-lint # Run after tests pass
+    needs: test-and-lint
     runs-on: ubuntu-latest
-
     steps:
-      # This step now explicitly checks out the PR branch
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -52,11 +53,9 @@ jobs:
       - name: Generate Diagram
         run: poetry run python docs/architecture.py
 
-      # This step now pushes back to the correct branch
       - name: Commit diagram changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add docs/architecture.png
-          # Use || true to prevent the step from failing if there's nothing to commit.
           git diff --staged --quiet || (git commit -m "docs(bot): auto-generate architecture diagram" && git push)
