@@ -11,6 +11,8 @@ package-mode = false  # This tells Poetry not to install the root project itself
 [tool.poetry.dependencies]
 python = "^3.10"
 boto3 = ">=1.39.9,<2.0.0"
+fastapi = "^0.116.1"
+uvicorn = "^0.35.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"

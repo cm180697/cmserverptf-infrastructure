@@ -10,7 +10,9 @@ def lambda_handler(event, context):
     """
     TABLE_NAME = os.environ.get("TABLE_NAME")
     PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
-    dynamodb = boto3.resource("dynamodb")
+    AWS_REGION = os.environ.get("AWS_REGION")
+
+    dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
     table = dynamodb.Table(TABLE_NAME)
 
     try:
