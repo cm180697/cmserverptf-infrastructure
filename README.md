@@ -1,6 +1,8 @@
 # AWS Cloud & DevOps Portfolio Project
 
-This repository contains the infrastructure and application code for a comprehensive, production-grade portfolio website hosted on AWS. The entire system is managed via Infrastructure as Code (IaC) and deployed through a secure GitOps CI/CD pipeline.
+This repository contains the infrastructure and application code for a comprehensive, production-grade portfolio website hosted on AWS. The entire system is managed via Infrastructure as Code (IaC) and deployed through a secure, multi-pipeline GitOps workflow.
+
+This project demonstrates proficiency in two distinct, modern backend architectures running in parallel: **Serverless Functions (Lambda)** and **Serverless Containers (ECS Fargate)**.
 
 ## Live Demo
 
@@ -9,8 +11,6 @@ This repository contains the infrastructure and application code for a comprehen
 ---
 
 ## Architecture Diagram
-
-*(Here, we will create and embed an architecture diagram. A great, free tool for this is [diagrams.net](https://app.diagrams.net/). You can create the diagram, export it as a PNG, and add it to a `docs/` folder in your repository.)*
 
 ![Architecture Diagram](docs/architecture.png)
 
@@ -32,11 +32,18 @@ This repository contains the infrastructure and application code for a comprehen
 - **OIDC Connection:** Secure, keyless authentication between GitHub Actions and AWS.
 - **Conventional Commits & Semantic Versioning:** For a clean, professional Git history and release management.
 
-### Backend
-- **AWS Lambda:** Serverless compute for the visitor counter function.
-- **Amazon API Gateway:** Provides a public HTTP endpoint for the Lambda function.
-- **Amazon DynamoDB:** A NoSQL database for storing the visitor count.
-- **Python:** The language for the Lambda function, managed with **Poetry**.
+### Containerization 🐳
+- **Docker:** For packaging the backend application into a portable, lightweight container.
+- **Amazon ECR (Elastic Container Registry):** A private, secure registry for storing the Docker image.
+- **Amazon ECS (Elastic Container Service) with Fargate:** Runs the container in a serverless compute environment, demonstrating modern container orchestration without managing servers.
+- **Application Load Balancer (ALB):** Provides a stable public endpoint for the containerized service.
+
+### Backend Application
+- **Dual Architecture:**
+    - **Serverless Function:** An **AWS Lambda** function provides an API endpoint via **API Gateway**.
+    - **Containerized Service:** A **FastAPI** web server running in **ECS Fargate** provides an alternative API endpoint.
+- **Amazon DynamoDB:** A shared, high-performance NoSQL database for storing the visitor count, used by both backends.
+- **Python:** The language for the application logic, managed with **Poetry**.
 
 ### Frontend
 - **Amazon S3:** Stores the static website content (`index.html`).
@@ -52,7 +59,7 @@ This repository contains the infrastructure and application code for a comprehen
 
 ### Monitoring & Observability
 - **Amazon CloudWatch:**
-    - A custom **Dashboard** for monitoring API and Lambda metrics.
+    - A custom **Dashboard** for monitoring API, Lambda, and ECS metrics.
     - **Alarms** for budget alerts and critical security events (e.g., Root user activity).
 - **AWS CloudTrail:** For a complete audit trail of all account activity.
 - **AWS Config:** For monitoring resource configurations and compliance.
@@ -60,6 +67,7 @@ This repository contains the infrastructure and application code for a comprehen
 ---
 ## Key Features
 
+- **Multi-Architecture Proficiency:** Demonstrates the ability to build and deploy applications using both serverless functions (Lambda) and serverless containers (ECS Fargate), a key skill in modern cloud engineering.
 - **Least-Privilege IAM Policies:** All IAM roles are crafted with the minimum necessary permissions, a critical security best practice.
 - **Scalable CI/CD:** The application pipeline is designed to be efficient, running tests only for the code that has changed.
 - **Complete Automation:** From a `git push`, the entire process of testing, infrastructure deployment, and application deployment is 100% automated.
