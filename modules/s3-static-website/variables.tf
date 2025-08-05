@@ -7,3 +7,8 @@ variable "website_url" {
   description = "The full HTTPS URL of the portfolio website."
   type        = string
 }
+
+variable "alb_dns_name" {
+  description = "The DNS name of the internal Application Load Balancer."
+  type        = string
+}

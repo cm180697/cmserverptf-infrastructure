@@ -1,6 +1,3 @@
-
-data "aws_caller_identity" "current" {}
-
 # Fetch the default VPC and subnets for our account
 data "aws_vpc" "default" {
   default = true
@@ -13,6 +10,14 @@ data "aws_subnets" "default" {
   }
 }
 
+# Data source to get AWS's managed prefix list for CloudFront
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
+data "aws_caller_identity" "current" {}
+
+
 # 1. ECR: Container Registry
 resource "aws_ecr_repository" "app" {
   name                 = "portfolio-visitor-counter"
@@ -24,7 +29,7 @@ resource "aws_ecs_cluster" "main" {
   name = "portfolio-cluster"
 }
 
-# 3. IAM: Role for the ECS Task
+# 3. IAM Roles
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "ecs-task-execution-role"
   assume_role_policy = jsonencode({
@@ -32,9 +37,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
     Statement = [{
       Action    = "sts:AssumeRole",
       Effect    = "Allow",
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
 }
@@ -44,17 +47,45 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role" "ecs_task_role" {
+  name = "ecs-task-role"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task_dynamodb_policy" {
+  name = "ecs-task-dynamodb-policy"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = ["dynamodb:UpdateItem", "dynamodb:GetItem"]
+        Effect   = "Allow"
+        Resource = "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/visitor-counter-table"
+      }
+    ]
+  })
+}
+
 # 4. Networking: Security Groups
 resource "aws_security_group" "lb_sg" {
   name        = "portfolio-lb-sg"
-  description = "Allow HTTP traffic to the load balancer"
+  description = "Allow HTTP traffic from CloudFront to the load balancer"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    protocol    = "tcp"
-    from_port   = 80
-    to_port     = 80
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol        = "tcp"
+    from_port       = 80
+    to_port         = 80
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id] # <-- Allow CloudFront IPs
   }
 
   egress {
@@ -88,7 +119,7 @@ resource "aws_security_group" "ecs_sg" {
 # 5. Networking: Load Balancer
 resource "aws_lb" "app" {
   name               = "portfolio-app-lb"
-  internal           = false
+  internal           = true # <-- THE KEY CHANGE: MAKE THE ALB INTERNAL
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_sg.id]
   subnets            = data.aws_subnets.default.ids
@@ -118,14 +149,14 @@ resource "aws_ecs_task_definition" "app" {
   family                   = "visitor-counter-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"  # 0.25 vCPU
-  memory                   = "512"  # 512 MB
+  cpu                      = "256"
+  memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn  
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([{
     name      = "visitor-counter-container"
-    image     = "${aws_ecr_repository.app.repository_url}:latest" # We'll push an image with the 'latest' tag
+    image     = "${aws_ecr_repository.app.repository_url}:latest"
     cpu       = 256
     memory    = 512
     essential = true
@@ -151,7 +182,7 @@ resource "aws_ecs_service" "main" {
   network_configuration {
     subnets         = data.aws_subnets.default.ids
     security_groups = [aws_security_group.ecs_sg.id]
-    assign_public_ip = true
+    assign_public_ip = true # Still need this for the task to pull the ECR image
   }
 
   load_balancer {
@@ -160,37 +191,5 @@ resource "aws_ecs_service" "main" {
     container_port   = 8000
   }
 
-  # This ensures the service waits for the load balancer to be ready.
   depends_on = [aws_lb_listener.http]
-}
-
-# IAM: Role for the Application inside the container
-resource "aws_iam_role" "ecs_task_role" {
-  name = "ecs-task-role"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
-    Statement = [{
-      Action    = "sts:AssumeRole",
-      Effect    = "Allow",
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "ecs_task_dynamodb_policy" {
-  name = "ecs-task-dynamodb-policy"
-  role = aws_iam_role.ecs_task_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action   = ["dynamodb:UpdateItem", "dynamodb:GetItem"]
-        Effect   = "Allow"
-        Resource = "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/visitor-counter-table"
-      }
-    ]
-  })
 }
