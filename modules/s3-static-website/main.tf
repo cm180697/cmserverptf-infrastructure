@@ -78,37 +78,69 @@ resource "aws_acm_certificate_validation" "cert_validation" {
 
 # CloudFront Distribution (CDN)
 resource "aws_cloudfront_distribution" "s3_distribution" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+  aliases             = ["www.${var.domain_name}"]
+
+  # Origin 1: The S3 bucket for the website content (default)
   origin {
     domain_name              = aws_s3_bucket.portfolio_bucket.bucket_regional_domain_name
     origin_id                = "S3-${var.domain_name}"
     origin_access_control_id = aws_cloudfront_origin_access_control.default.id
   }
 
-  enabled             = true
-  is_ipv6_enabled     = true
-  default_root_object = "index.html"
+  # --- NEW: Origin 2: The internal ALB for the API ---
+  origin {
+    domain_name = var.alb_dns_name
+    origin_id   = "ALB-${var.domain_name}"
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
 
-  aliases = ["www.${var.domain_name}"]
-
+  # This is the default behavior: serve content from S3
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-${var.domain_name}"
-
+    viewer_protocol_policy = "redirect-to-https"
+    
     forwarded_values {
       query_string = false
       cookies {
         forward = "none"
       }
     }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
   }
 
-  price_class = "PriceClass_100" # Use only North America and Europe
+  # --- NEW: This is a special rule for API traffic ---
+  # It sends any request to /api/* to the ALB instead of S3
+  ordered_cache_behavior {
+    path_pattern     = "/api/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = "ALB-${var.domain_name}"
+    viewer_protocol_policy = "redirect-to-https"
+
+    # For an API, we don't want to cache anything and we forward all headers
+    default_ttl = 0
+    min_ttl     = 0
+    max_ttl     = 0
+
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  price_class = "PriceClass_100"
 
   restrictions {
     geo_restriction {
