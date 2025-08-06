@@ -119,7 +119,7 @@ resource "aws_security_group" "ecs_sg" {
 # 5. Networking: Load Balancer
 resource "aws_lb" "app" {
   name               = "portfolio-app-lb"
-  internal           = true # <-- THE KEY CHANGE: MAKE THE ALB INTERNAL
+  internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_sg.id]
   subnets            = data.aws_subnets.default.ids
